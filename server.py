@@ -55,17 +55,29 @@ def rag(query: str) -> str:
                     i += 1
     return search_result
 
-@mcp.prompt()
-def product_prompt() -> str:
-    return PRODUCT_INSTRUCTION
+
+
+
+
+# @mcp.prompt()
+# def product_prompt() -> str:
+#     return PRODUCT_INSTRUCTION
 
 @mcp.prompt()
 def manager_prompt() -> str:
     return MANAGER_INSTRUCTION
 
 @mcp.prompt()
-def shop_information_prompt() -> str:
-    return SHOP_INFORMATION_INSTRUCTION
+def order_prompt() -> str:
+    return ORDER_PROMPT
+
+@mcp.prompt()
+def tracking_prompt() -> str:
+    return TRACKING_PROMPT
+
+@mcp.prompt()
+def advisor_prompt() -> str:
+    return ADVISOR_PROMPT  
 
 
 if __name__ == "__main__":

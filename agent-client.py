@@ -27,24 +27,15 @@ async def run(mcp_server: MCPServer, promps: dict):
     # Currently agent of openai only support list tools 
     # so if we need to list prompts, we need to initialize the new session here
 
-    product_agent = Agent(
-        name="Assistant",
-        instructions="Use the tools to answer the questions.",
-        mcp_servers=[mcp_server],
-        model_settings=ModelSettings(tool_choice="required"),
-    )
+    # product_agent = Agent(
+    #     name="Assistant",
+    #     instructions="Use the tools to answer the questions.",
+    #     mcp_servers=[mcp_server],
+    #     model_settings=ModelSettings(tool_choice="required"),
+    # )
 
 
-    manager_agent = Agent(
-        name="manager",
-        instructions=promps["MANAGER_INSTRUCTION"],
-        handoffs=[
-            handoff(order_agent),
-            handoff(advisor_agent),
-            handoff(tracking_agent)
-        ]
-        
-    )
+
 
 
     # Order Agent
@@ -71,7 +62,16 @@ async def run(mcp_server: MCPServer, promps: dict):
         model_settings=ModelSettings(tool_choice="required"),
     )
 
-
+    manager_agent = Agent(
+        name="manager",
+        instructions=promps["MANAGER_INSTRUCTION"],
+        handoffs=[
+            handoff(order_agent),
+            handoff(advisor_agent),
+            handoff(tracking_agent)
+        ]
+        
+    )
 
 
 async def main():
@@ -86,22 +86,35 @@ async def main():
         async with sse_client(url="http://localhost:8000/sse") as streams:
             async with ClientSession(*streams) as session:
                 await session.initialize()
+
+                prompt_response_tracking = await session.get_prompt(name="tracking_prompt")
+                TRACKING_PROMPT = prompt_response_tracking.messages[0].content.text
+                
+                prompt_response_advisor = await session.get_prompt(name="advisor_prompt")
+                ADVISOR_PROMPT = prompt_response_advisor.messages[0].content.text
+
+                prompt_response_order = await session.get_prompt(name="order_prompt")
+                ORDER_PROMPT = prompt_response_order.messages[0].content.text
                 
                 prompt_response = await session.get_prompt(name="manager_prompt")
                 MANAGER_INSTRUCTION = prompt_response.messages[0].content.text
                 
+
                 with trace(workflow_name="SSE Example", trace_id=trace_id):
                     print(f"View trace: https://platform.openai.com/traces/trace?trace_id={trace_id}\n")
                     await run(server, {
-                        "MANAGER_INSTRUCTION": MANAGER_INSTRUCTION
+                        "MANAGER_INSTRUCTION": MANAGER_INSTRUCTION,
+                        "TRACKING_PROMPT": TRACKING_PROMPT,
+                        "ADVISOR_PROMPT": ADVISOR_PROMPT,
+                        "ORDER_PROMPT": ORDER_PROMPT
                     })
 
 if __name__ == "__main__":
     # Let's make sure the user has uv installed
-    if not shutil.which("uv"):
-        raise RuntimeError(
-            "uv is not installed. Please install it: https://docs.astral.sh/uv/getting-started/installation/"
-        )
+    # if not shutil.which("uv"):
+    #     raise RuntimeError(
+    #         "uv is not installed. Please install it: https://docs.astral.sh/uv/getting-started/installation/"
+    #     )
 
     # We'll run the SSE server in a subprocess. Usually this would be a remote server, but for this
     # demo, we'll run it locally at http://localhost:8000/sse
@@ -113,7 +126,8 @@ if __name__ == "__main__":
         print("Starting SSE server at http://localhost:8000/sse ...")
 
         # Run `uv run server.py` to start the SSE server
-        process = subprocess.Popen(["uv", "run", server_file])
+        # process = subprocess.Popen(["uv", "run", server_file])
+        process = subprocess.Popen(["python", server_file])
         # Give it 3 seconds to start
         time.sleep(3)
 
